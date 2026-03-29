@@ -86,6 +86,7 @@ if err := app.Run(); err != nil {
 - [ ] **v0.2.0**: Prometheus metrics exporter integration.
 - [ ] **v0.3.0**: Distributed rate limiting (Redis provider).
 - [ ] **v0.4.0**: Automatic OpenAPI (Swagger) documentation generation.
+- [ ] **v0.5.0**: Websocket support.
 - [ ] **v1.0.0**: Stable API release.
 
 ---
