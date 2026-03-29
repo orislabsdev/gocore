@@ -35,7 +35,7 @@ In a world of "magic" frameworks, **gocore** takes a different approach. It prov
 
 `gocore` is engineered with a multi-layered security approach:
 
-1.  **Attack Surface Reduction**: Only 2 external dependencies (`jwt` and `x/time`). No bloated dependency trees.
+1.  **Attack Surface Reduction**: Only 3 external dependencies (`jwt`, `x/time`, `prometheus`). No bloated dependency trees.
 2.  **Hardened Defaults**:
     - **HSTS**: Enforces HTTPS for 1 year by default.
     - **CSP**: Restrictive `default-src 'self'` policy.
@@ -45,6 +45,7 @@ In a world of "magic" frameworks, **gocore** takes a different approach. It prov
     - **Injection**: Path parameters are strictly parsed via Trie nodes.
     - **Brute Force**: In-memory token-bucket rate limiter per IP/Client.
     - **Token Hijacking**: JWT multi-source extraction (Header/Cookie) with TTL enforcement.
+    - **Metrics Cardinality**: Prometheus metrics are protected against memory-exhaustion by tracking the underlying router pattern (e.g., `/users/:id`) instead of raw request URLs.
 
 ### Architecture & Tradeoffs
 
@@ -83,7 +84,7 @@ if err := app.Run(); err != nil {
 
 ### Strategic Roadmap (v0.x)
 
-- [ ] **v0.2.0**: Prometheus metrics exporter integration.
+- [x] **v0.2.0**: Prometheus metrics exporter integration.
 - [ ] **v0.3.0**: Distributed rate limiting (Redis provider).
 - [ ] **v0.4.0**: Automatic OpenAPI (Swagger) documentation generation.
 - [ ] **v0.5.0**: Websocket support.

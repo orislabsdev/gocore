@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Professional documentation: `SECURITY.md`, `CONTRIBUTING.md`.
 - GitHub Actions CI for automated testing.
 
+## [0.2.0] - 2026-03-28
+
+### Added
+- Integrated Prometheus metrics exporter (`builtin.Prometheus()`).
+- Added Prometheus middleware (`middleware.Prometheus()`) with cardinality protection for dynamic routes.
+- Exposed matched route pattern in router for downstream monitoring.
+
 ## [0.1.0] - 2026-03-18
 
 ### Added

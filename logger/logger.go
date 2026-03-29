@@ -47,7 +47,7 @@ var levelNames = map[Level]string{
 	LevelDebug: "DEBUG",
 	LevelInfo:  "INFO",
 	LevelWarn:  "WARN",
-	LevelError:  "ERROR",
+	LevelError: "ERROR",
 }
 
 // ParseLevel converts a string ("debug", "info", "warn", "error") to a Level.

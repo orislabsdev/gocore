@@ -42,6 +42,7 @@ type routeEntry struct {
 	middleware []handler.MiddlewareFunc
 	isPublic   bool
 	name       string
+	pattern    string
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,6 +81,7 @@ type MatchResult struct {
 	Middleware []handler.MiddlewareFunc
 	Params     handler.Params
 	IsPublic   bool
+	Pattern    string
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -181,7 +183,7 @@ func (r *Router) Handle(method, pattern string, h handler.HandlerFunc) *Route {
 	if _, exists := leafNode.handlers[method]; exists {
 		panic(fmt.Sprintf("router: duplicate route %s %s", method, pattern))
 	}
-	entry := &routeEntry{handler: h}
+	entry := &routeEntry{handler: h, pattern: pattern}
 	leafNode.handlers[method] = entry
 
 	return &Route{node: leafNode, method: method}
@@ -274,6 +276,11 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			ctx.Request = handler.SetParams(ctx.Request, result.Params)
 		}
 
+		// Inject matched pattern for metrics cardinality prevention.
+		if result.Pattern != "" {
+			ctx.Set("route_pattern", result.Pattern)
+		}
+
 		// Build the complete middleware chain:
 		//   global middleware → route-specific middleware → handler
 		h = middleware.Chain(result.Handler, append(r.globalMiddleware, result.Middleware...)...)
@@ -309,6 +316,7 @@ func (r *Router) match(method, path string) (result MatchResult, found, methodOK
 				Middleware: entry.middleware,
 				Params:     params,
 				IsPublic:   entry.isPublic,
+				Pattern:    entry.pattern,
 			}
 		}
 	}

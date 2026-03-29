@@ -27,9 +27,6 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/orislabsdev/gocore"
 	"github.com/orislabsdev/gocore/auth"
 	"github.com/orislabsdev/gocore/builtin"
@@ -37,6 +34,7 @@ import (
 	"github.com/orislabsdev/gocore/handler"
 	"github.com/orislabsdev/gocore/middleware"
 	"github.com/orislabsdev/gocore/validate"
+	"os"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,17 +63,19 @@ func main() {
 	// RateLimit — in the correct order.
 	app.UseDefaults()
 
+	// Install Prometheus observability middleware, skipping noisy utility paths.
+	app.Use(middleware.Prometheus("/health", "/metrics", "/ready"))
+
 	// ── 4. Public routes — no JWT required ────────────────────────────────────
-	startTime := time.Now()
 
 	app.GET("/health", builtin.HealthCheck()).Public().Name("health")
 	app.GET("/ready", builtin.ReadyCheck()).Public().Name("ready")
-	app.GET("/metrics", builtin.Metrics(startTime)) // Private by default
+	app.GET("/metrics", builtin.Prometheus()) // Private by default
 
 	// Auth endpoints are public (you cannot require a token to obtain a token).
 	app.POST("/auth/login", loginHandler(app.JWTManager())).Public().Name("auth.login")
 	app.POST("/auth/refresh", refreshHandler(app.JWTManager())).Public().Name("auth.refresh")
-  
+
 	// ── 5. Private API group — JWT required ───────────────────────────────────
 	api := app.Group("/api/v1")
 	api.Use(middleware.Auth(middleware.AuthConfig{
