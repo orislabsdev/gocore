@@ -25,7 +25,7 @@ After your report is received, we will:
 
 `gocore` is built with a "security-first" mindset:
 - **Default Secure**: All routes are private by default.
-- **Minimal Dependencies**: We only use 2 external dependencies to reduce the attack surface.
+- **Minimal Dependencies**: We only use 4 external dependencies to reduce the attack surface.
 - **Standard Library First**: We wrap `net/http` to leverage its battle-tested security.
 - **Automated Protections**: Built-in middleware for HSTS, CSP, and rate limiting.
 

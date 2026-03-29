@@ -177,6 +177,13 @@ type RateLimitConfig struct {
 	// Enabled toggles rate limiting (default: true).
 	Enabled bool `json:"enabled" yaml:"enabled"`
 
+	// Provider specifies the rate limiter backend.
+	// Valid values: "memory", "redis" (default: "memory")
+	Provider string `json:"provider" yaml:"provider"`
+
+	// Redis holds Redis-specific configuration for distributed rate limiting.
+	Redis RedisConfig `json:"redis" yaml:"redis"`
+
 	// RequestsPerSecond is the sustained request rate allowed per key
 	// (default: 100 rps). A value of 0 means unlimited.
 	RequestsPerSecond float64 `json:"requests_per_second" yaml:"requests_per_second"`
@@ -200,6 +207,24 @@ type RateLimitConfig struct {
 	//
 	// This field is not serializable; set it programmatically.
 	KeyFunc func(r *http.Request) string `json:"-" yaml:"-"`
+}
+
+// RedisConfig holds connection parameters for the Redis rate limit provider.
+type RedisConfig struct {
+	// Address is the Redis host:port (default: "localhost:6379").
+	Address string `json:"address" yaml:"address"`
+
+	// Password is the Redis authentication password (default: "").
+	Password string `json:"password" yaml:"password"`
+
+	// DB is the Redis database number (default: 0).
+	DB int `json:"db" yaml:"db"`
+
+	// DialTimeout is the connection timeout for Redis (default: 5s).
+	DialTimeout time.Duration `json:"dial_timeout" yaml:"dial_timeout"`
+
+	// ReadTimeout is the socket read timeout (default: 3s).
+	ReadTimeout time.Duration `json:"read_timeout" yaml:"read_timeout"`
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -359,10 +384,16 @@ func Default() *Config {
 		},
 		RateLimit: RateLimitConfig{
 			Enabled:           true,
+			Provider:          "memory",
 			RequestsPerSecond: 100,
 			Burst:             20,
 			CleanupInterval:   5 * time.Minute,
 			ClientTTL:         10 * time.Minute,
+			Redis: RedisConfig{
+				Address:     "localhost:6379",
+				DialTimeout: 5 * time.Second,
+				ReadTimeout: 3 * time.Second,
+			},
 		},
 		JWT: JWTConfig{
 			AccessTokenTTL:  15 * time.Minute,

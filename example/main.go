@@ -55,6 +55,10 @@ func main() {
 	// Relax CORS for local development; restrict to real origins in production.
 	cfg.CORS.AllowedOrigins = []string{"*"}
 
+	// Optional: Use Redis for distributed rate limiting.
+	// cfg.RateLimit.Provider = "redis"
+	// cfg.RateLimit.Redis.Address = "localhost:6379"
+
 	// ── 2. Create the application ─────────────────────────────────────────────
 	app := gocore.NewWithConfig(cfg)
 
