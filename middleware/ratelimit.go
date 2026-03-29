@@ -1,95 +1,26 @@
 package middleware
 
 import (
+	"context"
+	"fmt"
 	"net/http"
-	"sync"
 	"time"
-
-	"golang.org/x/time/rate"
 
 	"github.com/orislabsdev/gocore/config"
 	"github.com/orislabsdev/gocore/handler"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Per-client limiter entry
+// Limiter Backend Interface
 // ─────────────────────────────────────────────────────────────────────────────
 
-// clientLimiter pairs a token-bucket rate limiter with the last time the
-// client made a request. The timestamp is used to evict stale entries from
-// the store during cleanup sweeps.
-type clientLimiter struct {
-	limiter  *rate.Limiter
-	lastSeen time.Time
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Limiter store
-// ─────────────────────────────────────────────────────────────────────────────
-
-// limiterStore holds a map of client keys to their per-client limiters.
-// A background goroutine periodically evicts entries that have not been seen
-// for longer than the configured ClientTTL.
-type limiterStore struct {
-	mu      sync.Mutex
-	clients map[string]*clientLimiter
-	cfg     config.RateLimitConfig
-}
-
-// newLimiterStore creates a store and starts its background cleanup goroutine.
-// The goroutine exits when ctx (passed via done channel) is closed.
-func newLimiterStore(cfg config.RateLimitConfig, done <-chan struct{}) *limiterStore {
-	s := &limiterStore{
-		clients: make(map[string]*clientLimiter),
-		cfg:     cfg,
-	}
-	go s.cleanupLoop(done)
-	return s
-}
-
-// get returns the rate limiter for the given key, creating one if necessary.
-func (s *limiterStore) get(key string) *rate.Limiter {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	entry, ok := s.clients[key]
-	if !ok {
-		lim := rate.NewLimiter(rate.Limit(s.cfg.RequestsPerSecond), s.cfg.Burst)
-		entry = &clientLimiter{limiter: lim}
-		s.clients[key] = entry
-	}
-	entry.lastSeen = time.Now()
-	return entry.limiter
-}
-
-// cleanupLoop runs in a goroutine and periodically removes stale client
-// entries to bound memory usage. The loop exits when done is closed.
-func (s *limiterStore) cleanupLoop(done <-chan struct{}) {
-	ticker := time.NewTicker(s.cfg.CleanupInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			s.evictStale()
-		case <-done:
-			return
-		}
-	}
-}
-
-// evictStale removes entries that have not been seen for longer than ClientTTL.
-func (s *limiterStore) evictStale() {
-	threshold := time.Now().Add(-s.cfg.ClientTTL)
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for key, entry := range s.clients {
-		if entry.lastSeen.Before(threshold) {
-			delete(s.clients, key)
-		}
-	}
+// limiterBackend is the interface for rate limiting storage (memory or remote).
+type limiterBackend interface {
+	// Allow checks if the given key is allowed to make a request.
+	// It returns a boolean indicating if it's allowed, and the duration
+	// the client should wait if it's not allowed. The error is non-nil
+	// only if the backend failed to evaluate the request.
+	Allow(ctx context.Context, key string) (allowed bool, retryAfter time.Duration, err error)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,12 +34,16 @@ func (s *limiterStore) evictStale() {
 // KeyFunc in the config to key by authenticated user ID, API key, or any
 // other dimension.
 //
+// The limiter supports pluggable backends:
+//   - "memory": fast, lock-based in-memory map (default)
+//   - "redis": distributed rate-limiting via atomic Lua scripts
+//
 // When a client exceeds the configured rate, the middleware responds with
 // HTTP 429 Too Many Requests and sets the Retry-After header. The request
 // chain is aborted (the actual handler is not called).
 //
 // The done channel should be closed when the server shuts down to stop the
-// background cleanup goroutine:
+// background cleanup goroutines for the memory backend:
 //
 //	done := make(chan struct{})
 //	app.Use(middleware.RateLimit(cfg.RateLimit, done))
@@ -120,7 +55,13 @@ func RateLimit(cfg config.RateLimitConfig, done <-chan struct{}) handler.Middlew
 		done = make(chan struct{})
 	}
 
-	store := newLimiterStore(cfg, done)
+	var backend limiterBackend
+	if cfg.Provider == "redis" {
+		backend = newRedisLimiterBackend(cfg)
+	} else {
+		// Fallback to "memory"
+		backend = newMemoryLimiterBackend(cfg, done)
+	}
 
 	// Default key function: use the client's remote IP.
 	keyFunc := cfg.KeyFunc
@@ -137,13 +78,22 @@ func RateLimit(cfg config.RateLimitConfig, done <-chan struct{}) handler.Middlew
 				return
 			}
 
-			lim := store.get(key)
-			if !lim.Allow() {
+			allowed, retryAfter, err := backend.Allow(ctx.Request.Context(), key)
+			if err != nil {
+				// Log the error but fail open so legitimate traffic isn't blocked by
+				// a rate limiter backend outage.
+				ctx.Logger().Error("rate limiter backend failed", "error", err, "key", key)
+				next(ctx)
+				return
+			}
+
+			if !allowed {
 				// Inform the client how many seconds to wait before retrying.
-				// We use a fixed 1-second estimate here; a precise calculation
-				// would require exposing rate.Reservation, which adds complexity
-				// without meaningful benefit for most use cases.
-				ctx.SetHeader("Retry-After", "1")
+				retrySec := int(retryAfter.Seconds())
+				if retrySec < 1 {
+					retrySec = 1
+				}
+				ctx.SetHeader("Retry-After", fmt.Sprintf("%d", retrySec))
 				ctx.TooManyRequests()
 				return
 			}

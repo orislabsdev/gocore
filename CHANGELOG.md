@@ -7,17 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-29
+
 ### Added
-- Initial project structure.
-- Trie-based router with groups and params.
-- JWT authentication manager.
-- Middleware: Logger, Recovery, Security, CORS, RateLimit.
-- Request/Response context helpers.
-- Built-in health and metrics handlers.
-- Simplified validation package.
-- Graceful shutdown support.
-- Professional documentation: `SECURITY.md`, `CONTRIBUTING.md`.
-- GitHub Actions CI for automated testing.
+- Integrated `go-redis/v9` as a dependency for distributed token-bucket rate limiting.
+- Abstracted the `RateLimit` middleware to allow pluggable backends (`Provider: "memory" | "redis"`).
+- Added `RedisConfig` to the global configuration struct.
 
 ## [0.2.0] - 2026-03-28
 
@@ -30,3 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Beta release of the core library.
+- Initial project structure.
+- Trie-based router with groups and params.
+- JWT authentication manager.
+- Middleware: Logger, Recovery, Security, CORS, RateLimit.
+- Request/Response context helpers.
+- Built-in health and metrics handlers.
+- Simplified validation package.
+- Graceful shutdown support.
+- Professional documentation: `SECURITY.md`, `CONTRIBUTING.md`.
+- GitHub Actions CI for automated testing.
