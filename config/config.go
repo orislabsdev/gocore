@@ -56,8 +56,8 @@ type Config struct {
 // All timeouts default to conservative values that prevent resource exhaustion
 // while remaining comfortable for normal browser and API clients.
 type ServerConfig struct {
-	// Host is the network address to bind to (default: "0.0.0.0").
-	// Use "127.0.0.1" to accept only local connections.
+	// Host is the network address to bind to (default: "127.0.0.1").
+	// Use "0.0.0.0" to accept connections from any network interface.
 	Host string `json:"host" yaml:"host"`
 
 	// Port is the TCP port to listen on (default: 8080).
@@ -356,7 +356,7 @@ type SecurityConfig struct {
 func Default() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Host:              "0.0.0.0",
+			Host:              "127.0.0.1",
 			Port:              8080,
 			ReadTimeout:       30 * time.Second,
 			WriteTimeout:      30 * time.Second,
