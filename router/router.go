@@ -36,13 +36,25 @@ import (
 // Route entry
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ResponsePair represents an expected response for OpenAPI documentation.
+type ResponsePair struct {
+	Code        int
+	Description string
+	Example     any
+}
+
 // routeEntry holds the handler and metadata for a single method on a trie node.
 type routeEntry struct {
-	handler    handler.HandlerFunc
-	middleware []handler.MiddlewareFunc
-	isPublic   bool
-	name       string
-	pattern    string
+	handler     handler.HandlerFunc
+	middleware  []handler.MiddlewareFunc
+	isPublic    bool
+	name        string
+	pattern     string // e.g. /users/:id
+	summary     string
+	description string
+	tags        []string
+	requestBody any            // Optional struct for input JSON
+	responses   []ResponsePair // Documented responses
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -154,6 +166,52 @@ func (r *Route) Name(name string) *Route {
 	return r
 }
 
+// Summary assigns a brief summary to the route (used for OpenAPI docs).
+func (r *Route) Summary(summary string) *Route {
+	if entry, ok := r.node.handlers[r.method]; ok {
+		entry.summary = summary
+	}
+	return r
+}
+
+// Description assigns a verbose description to the route (used for OpenAPI docs).
+func (r *Route) Description(desc string) *Route {
+	if entry, ok := r.node.handlers[r.method]; ok {
+		entry.description = desc
+	}
+	return r
+}
+
+// Tags assigns OpenAPI logical tags to the route.
+func (r *Route) Tags(tags ...string) *Route {
+	if entry, ok := r.node.handlers[r.method]; ok {
+		entry.tags = append(entry.tags, tags...)
+	}
+	return r
+}
+
+// Body assigns a JSON request body type to the route for OpenAPI documentation.
+// Provide a zero-value struct or pointer to a struct.
+func (r *Route) Body(example any) *Route {
+	if entry, ok := r.node.handlers[r.method]; ok {
+		entry.requestBody = example
+	}
+	return r
+}
+
+// Returns assigns an expected JSON response payload to the route for OpenAPI docs.
+// Provide the HTTP status code, a description, and a zero-value struct for the payload.
+func (r *Route) Returns(code int, desc string, example any) *Route {
+	if entry, ok := r.node.handlers[r.method]; ok {
+		entry.responses = append(entry.responses, ResponsePair{
+			Code:        code,
+			Description: desc,
+			Example:     example,
+		})
+	}
+	return r
+}
+
 // Use appends middleware to this specific route. Route-level middleware runs
 // after global middleware but before the handler.
 func (r *Route) Use(mw ...handler.MiddlewareFunc) *Route {
@@ -251,6 +309,64 @@ func (r *Router) NotFound(h handler.HandlerFunc) { r.notFound = h }
 // MethodNotAllowed sets a custom handler for requests where the path matches
 // but the HTTP method does not.
 func (r *Router) MethodNotAllowed(h handler.HandlerFunc) { r.methodNotAllowed = h }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Introspection
+// ─────────────────────────────────────────────────────────────────────────────
+
+// RouteInfo represents a fully configured route for external introspection (e.g., OpenAPI).
+type RouteInfo struct {
+	Method      string
+	Pattern     string
+	Name        string
+	IsPublic    bool
+	Summary     string
+	Description string
+	Tags        []string
+	RequestBody any
+	Responses   []ResponsePair
+}
+
+// Routes returns a slice of all registered routes and their associated metadata.
+// Useful for generating automatic documentation.
+func (r *Router) Routes() []RouteInfo {
+	var list []RouteInfo
+
+	var walk func(node *trieNode)
+	walk = func(node *trieNode) {
+		if node == nil {
+			return
+		}
+		for method, entry := range node.handlers {
+			list = append(list, RouteInfo{
+				Method:      method,
+				Pattern:     entry.pattern,
+				Name:        entry.name,
+				IsPublic:    entry.isPublic,
+				Summary:     entry.summary,
+				Description: entry.description,
+				Tags:        entry.tags,
+				RequestBody: entry.requestBody,
+				Responses:   entry.responses,
+			})
+		}
+		for _, child := range node.children {
+			walk(child)
+		}
+		if node.paramChild != nil {
+			walk(node.paramChild)
+		}
+		if node.wildChild != nil {
+			walk(node.wildChild)
+		}
+	}
+
+	for _, root := range r.roots {
+		walk(root)
+	}
+
+	return list
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Request dispatch (ServeHTTP)
