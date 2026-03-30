@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-30
+
+### Added
+- Implemented native, zero-dependency OpenAPI v3.0 specification generation.
+- Added route metadata builder methods (`Summary`, `Description`, `Tags`, `Body`, `Returns`) to `router.Route`.
+- Added `Routes()` introspection method to `router.Router`.
+- Added `openapi` package to automatically generate JSON schemas from Go structs via reflection.
+- Added `builtin.SwaggerUI` handler to natively serve the Swagger UI single-page application.
+
 ## [0.3.0] - 2026-03-29
 
 ### Added

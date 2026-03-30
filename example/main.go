@@ -26,15 +26,18 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+
 	"github.com/orislabsdev/gocore"
 	"github.com/orislabsdev/gocore/auth"
 	"github.com/orislabsdev/gocore/builtin"
 	"github.com/orislabsdev/gocore/config"
 	"github.com/orislabsdev/gocore/handler"
 	"github.com/orislabsdev/gocore/middleware"
+	"github.com/orislabsdev/gocore/openapi"
 	"github.com/orislabsdev/gocore/validate"
-	"os"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,13 +75,45 @@ func main() {
 
 	// ── 4. Public routes — no JWT required ────────────────────────────────────
 
-	app.GET("/health", builtin.HealthCheck()).Public().Name("health")
-	app.GET("/ready", builtin.ReadyCheck()).Public().Name("ready")
-	app.GET("/metrics", builtin.Prometheus()) // Private by default
+	app.GET("/health", builtin.HealthCheck()).Public().Name("health").
+		Summary("Health Check").Tags("System")
+	app.GET("/ready", builtin.ReadyCheck()).Public().Name("ready").
+		Summary("Readiness Check").Tags("System")
+	app.GET("/metrics", builtin.Prometheus()).Tags("System") // Private by default
+
+	app.GET("/openapi.json", func(ctx *handler.Context) {
+		info := openapi.Info{
+			Title:       "gocore Example API",
+			Description: "Example API to demonstrate gocore features",
+			Version:     "1.0.0",
+		}
+		doc := openapi.Generate(info, app.Router().Routes())
+		
+		w := ctx.ResponseWriter()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(doc)
+	}).Public().Name("openapi").Summary("OpenAPI Schema").Tags("System")
+
+	app.GET("/docs", builtin.SwaggerUI("/openapi.json")).Public().Name("docs").
+		Summary("API Documentation UI").Tags("System")
 
 	// Auth endpoints are public (you cannot require a token to obtain a token).
-	app.POST("/auth/login", loginHandler(app.JWTManager())).Public().Name("auth.login")
-	app.POST("/auth/refresh", refreshHandler(app.JWTManager())).Public().Name("auth.refresh")
+	app.POST("/auth/login", loginHandler(app.JWTManager())).Public().Name("auth.login").
+		Summary("User Login").Tags("Auth").
+		Body(loginRequest{}).
+		Returns(201, "Authentication successful", loginResponse{}).
+		Returns(400, "Validation failed", nil).
+		Returns(401, "Invalid credentials", nil)
+
+	app.POST("/auth/refresh", refreshHandler(app.JWTManager())).Public().Name("auth.refresh").
+		Summary("Refresh Token").Tags("Auth").
+		Body(func() any {
+			type refReq struct {
+				RefreshToken string `json:"refresh_token"`
+			}
+			return refReq{}
+		}()).
+		Returns(200, "Tokens refreshed", map[string]string{"access_token": "string", "token_type": "Bearer"})
 
 	// ── 5. Private API group — JWT required ───────────────────────────────────
 	api := app.Group("/api/v1")
@@ -89,25 +124,26 @@ func main() {
 	}))
 
 	// User profile — accessible to any authenticated user.
-	api.GET("/me", getMeHandler())
-	api.PUT("/me", updateMeHandler())
+	api.GET("/me", getMeHandler()).Summary("Get Profile").Tags("Profile")
+	api.PUT("/me", updateMeHandler()).Summary("Update Profile").Tags("Profile").
+		Body(map[string]any{})
 
 	// Example of an optional query parameter: POST /api/v1/follow?user=123
-	api.POST("/follow", followUserHandler())
+	api.POST("/follow", followUserHandler()).Summary("Follow User").Tags("Profile")
 
 	// User CRUD — accessible to any authenticated user.
 	users := api.Group("/users")
-	users.GET("", listUsersHandler())
-	users.POST("", createUserHandler())
-	users.GET("/:id", getUserHandler())
-	users.PUT("/:id", updateUserHandler())
-	users.DELETE("/:id", deleteUserHandler())
+	users.GET("", listUsersHandler()).Summary("List Users").Tags("Users")
+	users.POST("", createUserHandler()).Summary("Create User").Tags("Users")
+	users.GET("/:id", getUserHandler()).Summary("Get User").Tags("Users")
+	users.PUT("/:id", updateUserHandler()).Summary("Update User").Tags("Users")
+	users.DELETE("/:id", deleteUserHandler()).Summary("Delete User").Tags("Users")
 
 	// Admin sub-group — additionally requires the "admin" role.
 	admin := api.Group("/admin")
 	admin.Use(middleware.RequireRoles("admin"))
-	admin.GET("/users", adminListUsersHandler())
-	admin.DELETE("/users/:id", adminDeleteUserHandler())
+	admin.GET("/users", adminListUsersHandler()).Summary("Admin List Users").Tags("Admin")
+	admin.DELETE("/users/:id", adminDeleteUserHandler()).Summary("Admin Delete User").Tags("Admin")
 
 	// ── 6. Start the server ───────────────────────────────────────────────────
 	if err := app.Run(); err != nil {
