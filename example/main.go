@@ -38,6 +38,7 @@ import (
 	"github.com/orislabsdev/gocore/middleware"
 	"github.com/orislabsdev/gocore/openapi"
 	"github.com/orislabsdev/gocore/validate"
+	"github.com/orislabsdev/gocore/websocket"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -96,6 +97,24 @@ func main() {
 
 	app.GET("/docs", builtin.SwaggerUI("/openapi.json")).Public().Name("docs").
 		Summary("API Documentation UI").Tags("System")
+
+	// ── WebSocket Example ─────────────────────────────────────────────────────
+	upgrader := websocket.Upgrader{}
+	app.GET("/ws", upgrader.Upgrade(func(c *handler.Context, conn *websocket.Conn) error {
+		c.Logger().Info("websocket connected")
+		for {
+			opcode, payload, err := conn.ReadMessage()
+			if err != nil {
+				c.Logger().Info("websocket disconnected", "err", err)
+				return err
+			}
+
+			// Echo the message back
+			if err := conn.WriteMessage(opcode, append([]byte("echo: "), payload...)); err != nil {
+				return err
+			}
+		}
+	})).Public().Name("ws").Summary("WebSocket Echo").Tags("WebSocket")
 
 	// Auth endpoints are public (you cannot require a token to obtain a token).
 	app.POST("/auth/login", loginHandler(app.JWTManager())).Public().Name("auth.login").
