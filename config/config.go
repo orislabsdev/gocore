@@ -271,6 +271,10 @@ type JWTConfig struct {
 	// AuthScheme is the scheme prefix stripped from the Authorization header
 	// before parsing (default: "Bearer").
 	AuthScheme string `json:"auth_scheme" yaml:"auth_scheme"`
+
+	// Leeway is the duration allowed for clock skew when validating time-based
+	// claims (nbf, exp, iat). Default: 2s.
+	Leeway time.Duration `json:"leeway" yaml:"leeway"`
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -401,6 +405,7 @@ func Default() *Config {
 			Algorithm:       "HS256",
 			TokenLookup:     "header:Authorization",
 			AuthScheme:      "Bearer",
+			Leeway:          2 * time.Second,
 		},
 		Log: LogConfig{
 			Level:      "info",

@@ -186,6 +186,7 @@ func (m *Manager) ValidateToken(tokenStr string) (*Claims, error) {
 		// Only accept the algorithm we configured — prevent algorithm confusion.
 		jwt.WithValidMethods([]string{m.method.Alg()}),
 		jwt.WithExpirationRequired(),
+		jwt.WithLeeway(m.cfg.Leeway),
 	)
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
