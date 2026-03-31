@@ -13,7 +13,7 @@ import (
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-// textHandler returns a HandlerFunc that writes a plain-text status 200 with the 
+// textHandler returns a HandlerFunc that writes a plain-text status 200 with the
 // given body string. Used to confirm which route was matched.
 func textHandler(body string) handler.HandlerFunc {
 	return func(ctx *handler.Context) {

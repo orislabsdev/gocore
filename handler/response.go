@@ -199,7 +199,6 @@ func (c *Context) Stringf(statusCode int, format string, a ...any) {
 	fmt.Fprintf(c.writer, format, a...)
 }
 
-
 // HTML writes an HTML response with the given status code.
 func (c *Context) HTML(statusCode int, body string) {
 	c.writer.Header().Set("Content-Type", "text/html; charset=utf-8")
