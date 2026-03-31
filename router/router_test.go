@@ -13,9 +13,9 @@ import (
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-// jsonHandler returns a HandlerFunc that writes a JSON status 200 with the
+// textHandler returns a HandlerFunc that writes a plain-text status 200 with the 
 // given body string. Used to confirm which route was matched.
-func jsonHandler(body string) handler.HandlerFunc {
+func textHandler(body string) handler.HandlerFunc {
 	return func(ctx *handler.Context) {
 		ctx.String(http.StatusOK, body)
 	}
@@ -43,9 +43,9 @@ func do(r *router.Router, method, path string) *httptest.ResponseRecorder {
 
 func TestStaticRoutes(t *testing.T) {
 	r := router.New()
-	r.GET("/", jsonHandler("root"))
-	r.GET("/health", jsonHandler("health"))
-	r.GET("/api/v1/users", jsonHandler("users"))
+	r.GET("/", textHandler("root"))
+	r.GET("/health", textHandler("health"))
+	r.GET("/api/v1/users", textHandler("users"))
 
 	tests := []struct {
 		path string
@@ -137,11 +137,11 @@ func TestWildcardRoutes(t *testing.T) {
 
 func TestHTTPMethods(t *testing.T) {
 	r := router.New()
-	r.GET("/item", jsonHandler("get"))
-	r.POST("/item", jsonHandler("post"))
-	r.PUT("/item", jsonHandler("put"))
-	r.PATCH("/item", jsonHandler("patch"))
-	r.DELETE("/item", jsonHandler("delete"))
+	r.GET("/item", textHandler("get"))
+	r.POST("/item", textHandler("post"))
+	r.PUT("/item", textHandler("put"))
+	r.PATCH("/item", textHandler("patch"))
+	r.DELETE("/item", textHandler("delete"))
 
 	methods := []struct {
 		method string
@@ -167,7 +167,7 @@ func TestHTTPMethods(t *testing.T) {
 
 func TestMethodNotAllowed(t *testing.T) {
 	r := router.New()
-	r.GET("/item", jsonHandler("ok"))
+	r.GET("/item", textHandler("ok"))
 
 	rec := do(r, http.MethodPost, "/item")
 	if rec.Code != http.StatusMethodNotAllowed {
@@ -183,11 +183,11 @@ func TestGroups(t *testing.T) {
 	r := router.New()
 
 	api := r.Group("/api/v1")
-	api.GET("/users", jsonHandler("list"))
-	api.POST("/users", jsonHandler("create"))
+	api.GET("/users", textHandler("list"))
+	api.POST("/users", textHandler("create"))
 
 	admin := api.Group("/admin")
-	admin.GET("/stats", jsonHandler("stats"))
+	admin.GET("/stats", textHandler("stats"))
 
 	tests := []struct {
 		method string
@@ -206,6 +206,9 @@ func TestGroups(t *testing.T) {
 		if rec.Code != tc.code {
 			t.Errorf("%s %s: status = %d, want %d", tc.method, tc.path, rec.Code, tc.code)
 		}
+		if tc.want != "" && rec.Body.String() != tc.want {
+			t.Errorf("%s %s: body = %q, want %q", tc.method, tc.path, rec.Body.String(), tc.want)
+		}
 	}
 }
 
@@ -215,8 +218,8 @@ func TestGroups(t *testing.T) {
 
 func TestPublicRouteFlag(t *testing.T) {
 	r := router.New()
-	r.GET("/public", jsonHandler("pub")).Public()
-	r.GET("/private", jsonHandler("priv")) // default is private
+	r.GET("/public", textHandler("pub")).Public()
+	r.GET("/private", textHandler("priv")) // default is private
 
 	// Confirm routes respond correctly (flag check is at the router.Match level).
 	rec := get(r, "/public")
@@ -244,7 +247,7 @@ func TestGlobalMiddleware(t *testing.T) {
 		}
 	}
 	r.Use(addHeader)
-	r.GET("/", jsonHandler("ok"))
+	r.GET("/", textHandler("ok"))
 
 	rec := get(r, "/")
 	if rec.Header().Get("X-Test") != "mw-ran" {
@@ -258,9 +261,9 @@ func TestGlobalMiddleware(t *testing.T) {
 
 func TestMatchPriority(t *testing.T) {
 	r := router.New()
-	r.GET("/users/me", jsonHandler("me"))      // static
-	r.GET("/users/:id", jsonHandler("param"))  // param
-	r.GET("/users/*rest", jsonHandler("wild")) // wildcard
+	r.GET("/users/me", textHandler("me"))      // static
+	r.GET("/users/:id", textHandler("param"))  // param
+	r.GET("/users/*rest", textHandler("wild")) // wildcard
 
 	tests := []struct {
 		path string
@@ -268,6 +271,7 @@ func TestMatchPriority(t *testing.T) {
 	}{
 		{"/users/me", "me"}, // static wins over param
 		{"/users/42", "param"},
+		{"/users/some/extra", "wild"},
 	}
 
 	for _, tc := range tests {
