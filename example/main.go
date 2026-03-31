@@ -99,7 +99,7 @@ func main() {
 		Summary("API Documentation UI").Tags("System")
 
 	// ── WebSocket Example ─────────────────────────────────────────────────────
-	upgrader := websocket.Upgrader{}
+	upgrader := websocket.NewDefaultUpgrader()
 	app.GET("/ws", upgrader.Upgrade(func(ctx *handler.Context, conn *websocket.Conn) error {
 		ctx.Logger().Info("websocket connected")
 		for {

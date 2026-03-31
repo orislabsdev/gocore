@@ -30,6 +30,27 @@ type Upgrader struct {
 	WriteBufferSize int
 }
 
+// NewUpgrader creates a new Upgrader with default settings.
+func NewUpgrader(cfg *Upgrader) *Upgrader {
+	if cfg == nil {
+		return NewDefaultUpgrader()
+	}
+	return &Upgrader{
+		CheckOrigin:     cfg.CheckOrigin,
+		ReadBufferSize:  cfg.ReadBufferSize,
+		WriteBufferSize: cfg.WriteBufferSize,
+	}
+}
+
+// NewDefaultUpgrader creates a new Upgrader with default settings.
+func NewDefaultUpgrader() *Upgrader {
+	return &Upgrader{
+		CheckOrigin:     defaultCheckOrigin,
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+}
+
 func defaultCheckOrigin(r *http.Request) bool {
 	origin := r.Header.Get("Origin")
 	if origin == "" {
