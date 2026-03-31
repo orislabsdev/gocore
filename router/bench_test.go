@@ -9,7 +9,7 @@ import (
 
 func BenchmarkRouter(b *testing.B) {
 	r := New()
-	h := func(ctx *handler.Context) {}
+	h := func(_ *handler.Context) {}
 
 	r.GET("/static", h)
 	r.GET("/api/v1/users/:id", h)

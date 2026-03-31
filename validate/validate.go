@@ -101,26 +101,26 @@ func (v *Validator) RequiredIf(field, value string, condition bool) *Validator {
 }
 
 // MinLen fails if the UTF-8 character count of value is below min.
-func (v *Validator) MinLen(field, value string, min int) *Validator {
-	if utf8.RuneCountInString(value) < min {
-		v.addError(field, fmt.Sprintf("must be at least %d characters", min))
+func (v *Validator) MinLen(field, value string, minVal int) *Validator {
+	if utf8.RuneCountInString(value) < minVal {
+		v.addError(field, fmt.Sprintf("must be at least %d characters", minVal))
 	}
 	return v
 }
 
 // MaxLen fails if the UTF-8 character count of value exceeds max.
-func (v *Validator) MaxLen(field, value string, max int) *Validator {
-	if utf8.RuneCountInString(value) > max {
-		v.addError(field, fmt.Sprintf("must be at most %d characters", max))
+func (v *Validator) MaxLen(field, value string, maxVal int) *Validator {
+	if utf8.RuneCountInString(value) > maxVal {
+		v.addError(field, fmt.Sprintf("must be at most %d characters", maxVal))
 	}
 	return v
 }
 
 // LenBetween fails if the length is outside [min, max] (inclusive).
-func (v *Validator) LenBetween(field, value string, min, max int) *Validator {
+func (v *Validator) LenBetween(field, value string, minVal, maxVal int) *Validator {
 	n := utf8.RuneCountInString(value)
-	if n < min || n > max {
-		v.addError(field, fmt.Sprintf("must be between %d and %d characters", min, max))
+	if n < minVal || n > maxVal {
+		v.addError(field, fmt.Sprintf("must be between %d and %d characters", minVal, maxVal))
 	}
 	return v
 }
@@ -155,25 +155,25 @@ func (v *Validator) URL(field, value string) *Validator {
 
 // Range fails if value is outside the inclusive range [min, max].
 // Works for any numeric type via float64.
-func (v *Validator) Range(field string, value, min, max float64) *Validator {
-	if value < min || value > max {
-		v.addError(field, fmt.Sprintf("must be between %v and %v", min, max))
+func (v *Validator) Range(field string, value, minVal, maxVal float64) *Validator {
+	if value < minVal || value > maxVal {
+		v.addError(field, fmt.Sprintf("must be between %v and %v", minVal, maxVal))
 	}
 	return v
 }
 
 // Min fails if value < min.
-func (v *Validator) Min(field string, value, min float64) *Validator {
-	if value < min {
-		v.addError(field, fmt.Sprintf("must be at least %v", min))
+func (v *Validator) Min(field string, value, minVal float64) *Validator {
+	if value < minVal {
+		v.addError(field, fmt.Sprintf("must be at least %v", minVal))
 	}
 	return v
 }
 
 // Max fails if value > max.
-func (v *Validator) Max(field string, value, max float64) *Validator {
-	if value > max {
-		v.addError(field, fmt.Sprintf("must be at most %v", max))
+func (v *Validator) Max(field string, value, maxVal float64) *Validator {
+	if value > maxVal {
+		v.addError(field, fmt.Sprintf("must be at most %v", maxVal))
 	}
 	return v
 }

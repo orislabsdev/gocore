@@ -99,7 +99,7 @@ func DefaultRecovery(log *logger.Logger) handler.MiddlewareFunc {
 	return Recovery(RecoveryConfig{
 		Log:        log,
 		PrintStack: true,
-		Handler: func(ctx *handler.Context, recovered any) {
+		Handler: func(ctx *handler.Context, _ any) {
 			// Avoid leaking internal error details to the client.
 			http.Error(
 				ctx.ResponseWriter(),

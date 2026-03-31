@@ -162,7 +162,6 @@ func TestHasRole_NilClaims(t *testing.T) {
 func TestValidateToken_Leeway(t *testing.T) {
 	cfg := testConfig()
 	cfg.Leeway = 5 * time.Second
-	mgr, _ := auth.NewManager(cfg)
 
 	// Issue a token that expires at "now + 1 second"
 	// Without leeway, it should be valid for 1 second.
@@ -176,13 +175,15 @@ func TestValidateToken_Leeway(t *testing.T) {
 	// Let's manually create a token with a claim in the future.
 	// Or just trust that jwt.WithLeeway is doing its job.
 	// I'll add a test that uses a small TTL and waits.
-	cfg.AccessTokenTTL = 100 * time.Millisecond
-	mgr, _ = auth.NewManager(cfg)
+	mgr, err := auth.NewManager(cfg)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
 	token, _ := mgr.IssueAccessToken("user-1", nil, nil)
 
 	time.Sleep(200 * time.Millisecond)
 
-	_, err := mgr.ValidateAccessToken(token)
+	_, err = mgr.ValidateAccessToken(token)
 	if err != nil {
 		t.Errorf("expected token to be valid due to leeway, got err: %v", err)
 	}
