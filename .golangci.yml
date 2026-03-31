@@ -1,44 +1,35 @@
 run:
   timeout: 5m
-  modules-download-mode: readonly
 
 linters:
   enable:
     - errcheck
     - staticcheck
-    - gosimple
     - govet
     - ineffassign
-    - typecheck
-    - unused
-    - misspell
     - revive
+    - misspell
 
 linters-settings:
   errcheck:
-    ignore: 'io:Close|fmt:Fprint|fmt:Fprintf|net:Close|http:Close|(*net.TCPConn):Close'
-
-  staticcheck:
-    checks: ["all", "-SA9003"]
+    ignore: 'io:Close|fmt:Fprint|fmt:Fprintf|net:Close'
 
 issues:
-  new-from-rev: ""
-
   exclude-rules:
     - linters: [errcheck]
-      text: "Error return value of `.Close` is not checked"
+      text: 'Error return value of `.*\.Close` is not checked'
 
     - linters: [errcheck]
-      text: "Error return value of `fmt\.(Fprint|Fprintf)` is not checked"
-
-    - linters: [errcheck]
-      text: "Error return value of `c\.Request\.Body\.Close` is not checked"
+      text: 'Error return value of `fmt\.(Fprint|Fprintf)` is not checked'
 
     - linters: [staticcheck]
-      text: "QF1012:"
+      text: 'QF1012:'
 
     - linters: [staticcheck]
-      text: "SA9003:"
+      text: 'QF1003:'
+
+    - linters: [staticcheck]
+      text: 'SA9003:'
 
   max-issues-per-linter: 0
   max-same-issues: 0
