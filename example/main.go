@@ -100,12 +100,12 @@ func main() {
 
 	// ── WebSocket Example ─────────────────────────────────────────────────────
 	upgrader := websocket.Upgrader{}
-	app.GET("/ws", upgrader.Upgrade(func(c *handler.Context, conn *websocket.Conn) error {
-		c.Logger().Info("websocket connected")
+	app.GET("/ws", upgrader.Upgrade(func(ctx *handler.Context, conn *websocket.Conn) error {
+		ctx.Logger().Info("websocket connected")
 		for {
 			opcode, payload, err := conn.ReadMessage()
 			if err != nil {
-				c.Logger().Info("websocket disconnected", "err", err)
+				ctx.Logger().Info("websocket disconnected", "err", err)
 				return err
 			}
 

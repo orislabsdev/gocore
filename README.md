@@ -88,6 +88,7 @@ if err := app.Run(); err != nil {
 - [x] **v0.3.0**: Distributed rate limiting (Redis provider).
 - [x] **v0.4.0**: Automatic OpenAPI (Swagger) documentation generation.
 - [x] **v0.5.0**: Websocket support.
+- [x] **v0.5.1**: Updated to Go `1.25.0` and updated dependencies.
 - [ ] **v0.6.0**: TBD.
 - [ ] **v1.0.0**: Stable API release.
 

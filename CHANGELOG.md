@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-03-30
+
+### Changed
+- Changed the default host to "127.0.0.1" instead of "0.0.0.0".
+
+### Upgraded
+- Upgraded to Go `1.25.0`
+- Upgraded `github.com/golang-jwt/jwt/v5` from `v5.2.1` to `v5.3.1`
+- Upgraded `github.com/prometheus/common` from `v0.66.1` to `v0.67.5`
+- Upgraded `github.com/prometheus/procfs` from `v0.16.1` to `v0.20.1`
+- Upgraded `go.yaml.in/yaml/v2` from `v2.4.2` to `v2.4.4`
+- Upgraded `golang.org/x/sys` from `v0.35.0` to `v0.42.0`
+- Upgraded `golang.org/x/time` from `v0.5.0` to `v0.15.0`
+- Upgraded `google.golang.org/protobuf` from `v1.36.8` to `v1.36.11`
+
 ## [0.5.0] - 2026-03-30
 
 ### Added
