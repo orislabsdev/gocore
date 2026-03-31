@@ -2,7 +2,6 @@ run:
   timeout: 5m
   modules-download-mode: readonly
 
-# Configuración de linters
 linters:
   enable:
     - errcheck
@@ -41,6 +40,5 @@ issues:
     - linters: [staticcheck]
       text: "SA9003:"
 
-  # Máximo de issues por linter (evita que falle por miles de warnings)
   max-issues-per-linter: 0
   max-same-issues: 0
