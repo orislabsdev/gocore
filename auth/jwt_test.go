@@ -19,6 +19,7 @@ func testConfig() config.JWTConfig {
 		RefreshTokenTTL: 7 * 24 * time.Hour,
 		TokenLookup:     "header:Authorization",
 		AuthScheme:      "Bearer",
+		Leeway:          1 * time.Second,
 	}
 }
 
@@ -106,8 +107,8 @@ func TestValidateToken_Tampered(t *testing.T) {
 	}
 
 	token, _ := mgr.IssueAccessToken("user-1", nil, nil)
-	// Corrupt the last byte of the signature.
-	tampered := token[:len(token)-1] + "X"
+	// Corrupt the token by appending a character, ensuring it's always different.
+	tampered := token + "xyz"
 
 	_, err = mgr.ValidateAccessToken(tampered)
 	if err == nil {
@@ -155,5 +156,34 @@ func TestHasRole(t *testing.T) {
 func TestHasRole_NilClaims(t *testing.T) {
 	if auth.HasRole(nil, "admin") {
 		t.Error("HasRole(nil) should return false")
+	}
+}
+
+func TestValidateToken_Leeway(t *testing.T) {
+	cfg := testConfig()
+	cfg.Leeway = 5 * time.Second
+	mgr, _ := auth.NewManager(cfg)
+
+	// Issue a token that expires at "now + 1 second"
+	// Without leeway, it should be valid for 1 second.
+	// With leeway of 5 seconds, it should still be valid even if we wait 2 seconds.
+	// We'll simulate this by setting a very short TTL.
+
+	// Actually, easier to use a "NotBefore" in the future.
+	// If NBF is 2 seconds in the future, it should still be valid with 5s leeway.
+	// But our Issue method sets NBF to now.
+
+	// Let's manually create a token with a claim in the future.
+	// Or just trust that jwt.WithLeeway is doing its job.
+	// I'll add a test that uses a small TTL and waits.
+	cfg.AccessTokenTTL = 100 * time.Millisecond
+	mgr, _ = auth.NewManager(cfg)
+	token, _ := mgr.IssueAccessToken("user-1", nil, nil)
+
+	time.Sleep(200 * time.Millisecond)
+
+	_, err := mgr.ValidateAccessToken(token)
+	if err != nil {
+		t.Errorf("expected token to be valid due to leeway, got err: %v", err)
 	}
 }
