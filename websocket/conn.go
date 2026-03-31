@@ -10,12 +10,12 @@ import (
 )
 
 var (
-	ErrCloseSent          = errors.New("websocket: close message sent")
-	ErrUnexpectedEOF      = errors.New("websocket: unexpected EOF")
-	ErrMessageTooLarge    = errors.New("websocket: message too large")
-	ErrMaskNotSet         = errors.New("websocket: mask bit not set by client")
-	ErrInvalidControlLen  = errors.New("websocket: invalid control frame length")
-	ErrControlFragmented  = errors.New("websocket: control frame cannot be fragmented")
+	ErrCloseSent         = errors.New("websocket: close message sent")
+	ErrUnexpectedEOF     = errors.New("websocket: unexpected EOF")
+	ErrMessageTooLarge   = errors.New("websocket: message too large")
+	ErrMaskNotSet        = errors.New("websocket: mask bit not set by client")
+	ErrInvalidControlLen = errors.New("websocket: invalid control frame length")
+	ErrControlFragmented = errors.New("websocket: control frame cannot be fragmented")
 )
 
 // Conn represents an active WebSocket connection.
