@@ -186,15 +186,19 @@ func (c *Context) InternalServerError(message string) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // String writes a plain-text response with the given status code.
-func (c *Context) String(statusCode int, format string, a ...any) {
+func (c *Context) String(statusCode int, text string) {
 	c.writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	c.writer.WriteHeader(statusCode)
-	if len(a) > 0 {
-		fmt.Fprintf(c.writer, format, a...)
-	} else {
-		fmt.Fprint(c.writer, format)
-	}
+	fmt.Fprint(c.writer, text)
 }
+
+// Stringf writes a formatted plain-text response with the given status code.
+func (c *Context) Stringf(statusCode int, format string, a ...any) {
+	c.writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	c.writer.WriteHeader(statusCode)
+	fmt.Fprintf(c.writer, format, a...)
+}
+
 
 // HTML writes an HTML response with the given status code.
 func (c *Context) HTML(statusCode int, body string) {
