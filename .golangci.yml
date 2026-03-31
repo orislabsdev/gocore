@@ -11,8 +11,14 @@ linters:
     - ineffassign
     - revive
     - misspell
+    - unused
 
   exclusions:
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+
     rules:
       - linters:
           - errcheck
@@ -34,11 +40,17 @@ linters:
           - staticcheck
         text: 'SA9003:'
 
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+  settings:
+    errcheck:
+      exclude-functions:
+        - io.Close
+        - fmt.Fprint
+        - fmt.Fprintf
+        - net.Close
 
-linter-settings:
-  errcheck:
-    ignore: 'io:Close|fmt:Fprint|fmt:Fprintf|net:Close'
+    revive:
+      severity: warning
+
+formatters:
+  enable:
+    - gofmt
