@@ -128,12 +128,8 @@ func (c *Conn) ReadMessage() (Opcode, []byte, error) {
 		// TODO: Handle fragmented frames (FIN=false). For now, assume unfragmented (which fits 99% of basic usages)
 		// To truly support RFC6455 we would buffer until FIN=true.
 		// For an engineering-first library we'll return the full message assembled if fin is false.
-		// We'll leave fragmentation buffering to a future iteration if needed, or buffer it here.
-		if !fin {
-			// This implementation doesn't yet automatically re-assemble fragments across multiple Read calls.
-			// It returns the part received.
-		}
-
+		// Note: This implementation doesn't yet automatically re-assemble fragments across multiple Read calls;
+		// it currently returns the part received.
 		return opcode, payload, nil
 	}
 }

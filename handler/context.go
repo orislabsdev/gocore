@@ -32,6 +32,8 @@ import (
 
 // HandlerFunc is the function signature for all route handlers.
 // Handlers receive a *Context that exposes helpers for every common operation.
+//
+//nolint:revive // Stutter is intentional for consistency with net/http
 type HandlerFunc func(ctx *Context)
 
 // MiddlewareFunc wraps a HandlerFunc to intercept the request/response cycle.

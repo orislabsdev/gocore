@@ -25,7 +25,7 @@ func TestUpgrader_Failures(t *testing.T) {
 	ctx := handler.NewContext(res, req)
 
 	u := Upgrader{}
-	h := u.Upgrade(func(c *handler.Context, conn *Conn) error {
+	h := u.Upgrade(func(_ *handler.Context, _ *Conn) error {
 		return nil
 	})
 

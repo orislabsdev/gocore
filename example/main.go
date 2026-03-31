@@ -89,7 +89,6 @@ func main() {
 			Version:     "1.0.0",
 		}
 		doc := openapi.Generate(info, app.Router().Routes())
-		
 		w := ctx.ResponseWriter()
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(doc)

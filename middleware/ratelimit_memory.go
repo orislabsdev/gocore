@@ -38,7 +38,7 @@ func newMemoryLimiterBackend(cfg config.RateLimitConfig, done <-chan struct{}) *
 	return s
 }
 
-func (s *memoryLimiterBackend) Allow(ctx context.Context, key string) (bool, time.Duration, error) {
+func (s *memoryLimiterBackend) Allow(_ context.Context, key string) (bool, time.Duration, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
