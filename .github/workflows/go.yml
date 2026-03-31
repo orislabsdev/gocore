@@ -42,8 +42,9 @@ jobs:
           file: ./coverage.txt
           fail_ci_if_error: false
 
-      - name: Lint (golangci-lint v2)
+      # ==================== LINT ====================
+      - name: Lint with golangci-lint v2
         uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
+          version: v2.11
           args: --timeout=5m
