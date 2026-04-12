@@ -13,6 +13,7 @@
 package handler
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -137,6 +138,14 @@ func (rw *responseWriter) Status() int { return rw.status }
 
 // Size returns the number of body bytes written.
 func (rw *responseWriter) Size() int64 { return rw.size }
+
+// Hijack exposes the underlying connection for protocol upgrades (e.g. WebSockets).
+func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := rw.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+	return nil, nil, fmt.Errorf("webserver does not support hijacking")
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Context
