@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2026-04-12
+
+### Added
+- Implemented `http.Hijacker` in `responseWriter` to support protocol upgrades (e.g. WebSockets).
+
+### Changed
+- Updated `.gitignore` to exclude `issue.md`.
+
+## [0.5.5] - 2026-03-31
+
+### Refactored
+- Improved error handling and variable usage in core components.
+- Aligned indentation of WebSocket error variables for consistency.
+- Cleaned up whitespace formatting in OpenAPI structs and response handlers.
+
+## [0.5.4] - 2026-03-31
+
+### Added
+- Added leeway support to JWT validation.
+
+### Changed
+- Upgraded Go to `1.25.1`.
+- Configured `GOTOOLCHAIN` to resolve `covdata` bug in CI.
+- Refactored `golangci-lint` configuration and upgraded `golangci-lint-action` to v7.
+
+## [0.5.3] - 2026-03-31
+
+### Refactored
+- Standardized response handling and updated associated router tests.
+
+## [0.5.2] - 2026-03-30
+
+### Added
+- `NewUpgrader` and `NewDefaultUpgrader` constructors for WebSocket configuration.
+
+### Changed
+- Updated documentation and example for WebSocket configuration and expansion.
+
 ## [0.5.1] - 2026-03-30
 
 ### Changed
