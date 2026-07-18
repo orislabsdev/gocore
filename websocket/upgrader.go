@@ -24,6 +24,12 @@ type Upgrader struct {
 	// Returning true permits the upgrade, false rejects it with a 403.
 	CheckOrigin func(r *http.Request) bool
 
+	// SubProtocols lists the WebSocket sub-protocols the server is willing to accept.
+	// During upgrade, the first client-requested protocol that appears in this list
+	// is echoed back in the Sec-WebSocket-Protocol response header per RFC 6455 §4.2.2.
+	// If nil or empty, no sub-protocol negotiation is performed.
+	SubProtocols []string
+
 	// ReadBufferSize and WriteBufferSize are the lengths of the buffers
 	// used for reading and writing to the network.
 	ReadBufferSize  int
@@ -35,8 +41,11 @@ func NewUpgrader(cfg *Upgrader) *Upgrader {
 	if cfg == nil {
 		return NewDefaultUpgrader()
 	}
+	sp := make([]string, len(cfg.SubProtocols))
+	copy(sp, cfg.SubProtocols)
 	return &Upgrader{
 		CheckOrigin:     cfg.CheckOrigin,
+		SubProtocols:    sp,
 		ReadBufferSize:  cfg.ReadBufferSize,
 		WriteBufferSize: cfg.WriteBufferSize,
 	}
@@ -115,6 +124,9 @@ func (u *Upgrader) Upgrade(h HandlerFunc) handler.HandlerFunc {
 		}
 		acceptKey := computeAcceptKey(key)
 
+		// 5b. Negotiate sub-protocol (RFC 6455 §4.2.2)
+		negotiatedProto := u.negotiateSubProtocol(req)
+
 		// 6. Hijack the connection
 		hijacker, ok := res.(http.Hijacker)
 		if !ok {
@@ -133,7 +145,11 @@ func (u *Upgrader) Upgrade(h HandlerFunc) handler.HandlerFunc {
 		resp := "HTTP/1.1 101 Switching Protocols\r\n" +
 			"Upgrade: websocket\r\n" +
 			"Connection: Upgrade\r\n" +
-			"Sec-WebSocket-Accept: " + acceptKey + "\r\n\r\n"
+			"Sec-WebSocket-Accept: " + acceptKey + "\r\n"
+		if negotiatedProto != "" {
+			resp += "Sec-WebSocket-Protocol: " + negotiatedProto + "\r\n"
+		}
+		resp += "\r\n"
 
 		if _, err := netConn.Write([]byte(resp)); err != nil {
 			netConn.Close()
@@ -147,6 +163,26 @@ func (u *Upgrader) Upgrade(h HandlerFunc) handler.HandlerFunc {
 		_ = h(c, wsConn)
 		wsConn.Close() // Ensure we close out the connection safely when done
 	}
+}
+
+func (u *Upgrader) negotiateSubProtocol(r *http.Request) string {
+	if len(u.SubProtocols) == 0 {
+		return ""
+	}
+	header := r.Header.Get("Sec-WebSocket-Protocol")
+	if header == "" {
+		return ""
+	}
+	requested := strings.SplitSeq(header, ",")
+	for rp := range requested {
+		rp = strings.TrimSpace(rp)
+		for _, sp := range u.SubProtocols {
+			if strings.EqualFold(rp, sp) {
+				return sp
+			}
+		}
+	}
+	return ""
 }
 
 func computeAcceptKey(key string) string {
