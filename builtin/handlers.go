@@ -226,9 +226,9 @@ func defaultFileConfig() fileConfig {
 // WithFileCache sets the Cache-Control max-age directive in seconds.
 //
 // Use cases:
-//   - 0 (default): no Cache-Control header, browser decides.
-//   - 3600: uploads que cambian ocasionalmente.
-//   - 31536000: SOLO si los filenames tienen hash (img-3a7b2c.png).
+//   - 0 (default): no Cache-Control header; the browser decides.
+//   - 3600: uploaded files that change occasionally.
+//   - 31536000: ONLY if the file names include a hash (img-3a7b2c.png).
 func WithFileCache(seconds int) FileOption {
 	return func(c *fileConfig) { c.cacheMaxAge = seconds }
 }
