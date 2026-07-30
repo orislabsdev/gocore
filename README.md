@@ -90,7 +90,7 @@ if err := app.Run(); err != nil {
 - [x] **v0.5.0**: Websocket support.
 - [x] **v0.5.1**: Updated to Go `1.25.0` and updated dependencies.
 - [x] **v0.5.2**: WebSocket configuration and expansion.
-- [ ] **v0.6.0**: TBD.
+- [x] **v0.6.0**: Secure File Server Implementation.
 - [ ] **v1.0.0**: Stable API release.
 
 ---
