@@ -489,10 +489,18 @@ func insert(node *trieNode, segments []string) *trieNode {
 func search(node *trieNode, segments []string, params handler.Params) (*routeEntry, bool) {
 	// Base case: no more segments — check for a handler at this node.
 	if len(segments) == 0 {
-		// Check for any method's handler at this node.
 		for _, entry := range node.handlers {
 			return entry, true
 		}
+		
+		if node.wildChild != nil {
+			params[node.wildName] = ""
+			for _, entry := range node.wildChild.handlers {
+				return entry, true
+			}
+			delete(params, node.wildName)
+		}
+
 		return nil, false
 	}
 

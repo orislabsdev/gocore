@@ -77,7 +77,7 @@ func RequestID() handler.MiddlewareFunc {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // requestCounter is used as a fallback counter when crypto/rand is unavailable.
-var requestCounter uint64
+var requestCounter atomic.Uint64
 
 // generateID returns a 16-character hex string derived from 8 random bytes.
 // Falls back to a counter-based ID if the OS entropy source is temporarily
@@ -85,7 +85,7 @@ var requestCounter uint64
 func generateID() string {
 	buf := make([]byte, 8)
 	if _, err := rand.Read(buf); err != nil {
-		n := atomic.AddUint64(&requestCounter, 1)
+		n := requestCounter.Add(1)
 		return fmt.Sprintf("%016x", n)
 	}
 	return hex.EncodeToString(buf)

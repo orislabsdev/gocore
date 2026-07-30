@@ -16,8 +16,12 @@ package builtin
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"net/http"
+	"os"
+	"path"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -191,4 +195,207 @@ func Metrics(startTime time.Time) handler.HandlerFunc {
 			Uptime:      time.Since(startTime).Truncate(time.Second).String(),
 		})
 	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File serving (API-oriented)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// fileConfig holds the configuration for file serving handlers.
+type fileConfig struct {
+	cacheMaxAge  int
+	denyDotFiles bool
+	download     bool
+	notFound     handler.HandlerFunc
+}
+
+// FileOption configures a file serving handler using the functional options
+// pattern. This keeps the common case simple while allowing customization:
+//
+//	builtin.ServeDir("./uploads")                                    // simple
+//	builtin.ServeDir("./uploads", builtin.WithFileCache(3600))       // con caché
+//	builtin.ServeDir("./docs", builtin.WithFileDownload(true))       // forzar descarga
+type FileOption func(*fileConfig)
+
+func defaultFileConfig() fileConfig {
+	return fileConfig{
+		denyDotFiles: true, // Security by default
+	}
+}
+
+// WithFileCache sets the Cache-Control max-age directive in seconds.
+//
+// Use cases:
+//   - 0 (default): no Cache-Control header; the browser decides.
+//   - 3600: uploaded files that change occasionally.
+//   - 31536000: ONLY if the file names include a hash (img-3a7b2c.png).
+func WithFileCache(seconds int) FileOption {
+	return func(c *fileConfig) { c.cacheMaxAge = seconds }
+}
+
+// WithFileDenyDot controls whether dotfiles are blocked.
+// Defaults to true — files like .env, .gitignore, .htaccess are denied.
+//
+// Disable only if you explicitly need to serve hidden files:
+//
+//	builtin.ServeDir("./data", builtin.WithFileDenyDot(false))
+func WithFileDenyDot(enabled bool) FileOption {
+	return func(c *fileConfig) { c.denyDotFiles = enabled }
+}
+
+// WithFileDownload forces the browser to download the file instead of
+// displaying it. This sets Content-Disposition: attachment; filename="..."
+//
+// Use this for documents, reports, and exports:
+//
+//	app.GET("/api/reports/*filepath", builtin.ServeDir("./reports", builtin.WithFileDownload(true)))
+func WithFileDownload(enabled bool) FileOption {
+	return func(c *fileConfig) { c.download = enabled }
+}
+
+// WithFileNotFound sets a custom handler for when a file is not found.
+// Without this, the handler calls ctx.NotFound("") which returns a JSON 404
+// consistent with the framework's envelope format.
+func WithFileNotFound(h handler.HandlerFunc) FileOption {
+	return func(c *fileConfig) { c.notFound = h }
+}
+
+// ServeDir returns a handler that serves files from a directory on disk.
+//
+// It expects to be registered with a wildcard route parameter named "filepath"
+// that captures the path within the directory:
+//
+//	app.GET("/api/images/*filepath", builtin.ServeDir("./uploads"))
+//
+// For a more convenient API, use Core.Static():
+//
+//	app.Static("/api/images", "./uploads")
+//
+// How it works:
+//  1. Extracts the "filepath" parameter from the router.
+//  2. Cleans the path to prevent directory traversal.
+//  3. Blocks dotfiles (.env, .git, etc.) by default.
+//  4. Serves the file using the standard library (handles Content-Type,
+//     ETag, Range requests, Last-Modified).
+//  5. Returns a JSON 404 if the file doesn't exist.
+func ServeDir(dir string, opts ...FileOption) handler.HandlerFunc {
+	return ServeFS(os.DirFS(dir), opts...)
+}
+
+// ServeFS returns a handler that serves files from an fs.FS.
+//
+// Use this when you need to serve files from an embedded filesystem or a
+// custom fs.FS implementation:
+//
+//	//go:embed assets
+//	var assetFS embed.FS
+//
+//	app.GET("/api/assets/*filepath", builtin.ServeFS(assetFS))
+func ServeFS(root fs.FS, opts ...FileOption) handler.HandlerFunc {
+	cfg := defaultFileConfig()
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	// Validate the FS at registration time — fail fast.
+	// A misconfigured directory should panic at startup, not at request time.
+	if _, err := fs.Stat(root, "."); err != nil {
+		panic("builtin: invalid file directory: " + err.Error())
+	}
+
+	// Create the standard file server once at registration time.
+	// http.FileServer is safe for concurrent use after creation.
+	fsrv := http.FileServer(http.FS(root))
+
+	return func(ctx *handler.Context) {
+		// ── Extract the file path from the wildcard parameter ──
+		filePath := ctx.Param("filepath")
+		if filePath == "" {
+			filePath = "/"
+		}
+
+		// ── Clean and normalize the path ──
+		// path.Clean removes ".", "..", and double slashes.
+		// Prepending "/" ensures absolute path normalization.
+		// fs.FS then validates that the resulting path doesn't escape root.
+		filePath = path.Clean("/" + filePath)
+
+		// Convert to FS-relative name (fs.FS uses relative paths).
+		name := strings.TrimPrefix(filePath, "/")
+		if name == "" {
+			// Root path requested — no file to serve.
+			fileNotFound(ctx, cfg)
+			return
+		}
+
+		// ── Security: block dotfiles ──
+		if cfg.denyDotFiles && hasDotFile(name) {
+			fileNotFound(ctx, cfg)
+			return
+		}
+
+		// ── Check if the file exists ──
+		stat, err := fs.Stat(root, name)
+		if err != nil {
+			if os.IsNotExist(err) {
+				fileNotFound(ctx, cfg)
+				return
+			}
+			ctx.Fail(http.StatusInternalServerError, "INTERNAL_ERROR",
+				"unable to access file", nil)
+			return
+		}
+
+		// Directories are not served — this is an API, not a file browser.
+		if stat.IsDir() {
+			fileNotFound(ctx, cfg)
+			return
+		}
+
+		// ── Set response headers ──
+		if cfg.cacheMaxAge > 0 {
+			ctx.ResponseWriter().Header().Set("Cache-Control",
+				fmt.Sprintf("public, max-age=%d", cfg.cacheMaxAge))
+		}
+
+		if cfg.download {
+			// Force the browser to download instead of displaying.
+			// RFC 6266: Content-Disposition header.
+			ctx.ResponseWriter().Header().Set("Content-Disposition",
+				fmt.Sprintf(`attachment; filename="%s"`, stat.Name()))
+		}
+
+		// ── Serve the file ──
+		// Clone the request to avoid mutating the original.
+		// The standard file server reads the URL path to determine which
+		// file to serve, so we set it to the file name.
+		req := ctx.Request.Clone(ctx.Request.Context())
+		req.URL.Path = "/" + name
+		fsrv.ServeHTTP(ctx.ResponseWriter(), req)
+	}
+}
+
+// fileNotFound handles the case when a requested file doesn't exist.
+func fileNotFound(ctx *handler.Context, cfg fileConfig) {
+	if cfg.notFound != nil {
+		cfg.notFound(ctx)
+		return
+	}
+	ctx.NotFound("")
+}
+
+// hasDotFile checks if the path contains any dotfile or dot directory.
+//
+//	hasDotFile(".env")          → true
+//	hasDotFile("images/.thumb") → true
+//	hasDotFile(".git/config")   → true
+//	hasDotFile("images/logo")   → false
+func hasDotFile(name string) bool {
+	parts := strings.SplitSeq(name, "/")
+	for part := range parts {
+		if part != "" && strings.HasPrefix(part, ".") {
+			return true
+		}
+	}
+	return false
 }

@@ -137,14 +137,14 @@ type tokenExtractor func(ctx *handler.Context) string
 // extractor functions, one per source:key pair.
 func buildExtractors(lookup, scheme string) []tokenExtractor {
 	var fns []tokenExtractor
-	parts := strings.Split(lookup, ",")
-	for _, part := range parts {
+	parts := strings.SplitSeq(lookup, ",")
+	for part := range parts {
 		part = strings.TrimSpace(part)
-		idx := strings.Index(part, ":")
-		if idx < 0 {
+		before, after, ok := strings.Cut(part, ":")
+		if !ok {
 			continue
 		}
-		source, key := part[:idx], part[idx+1:]
+		source, key := before, after
 		switch source {
 		case "header":
 			fns = append(fns, headerExtractor(key, scheme))
