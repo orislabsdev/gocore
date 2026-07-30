@@ -57,9 +57,13 @@
 package gocore
 
 import (
+	"io/fs"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/orislabsdev/gocore/auth"
+	"github.com/orislabsdev/gocore/builtin"
 	"github.com/orislabsdev/gocore/config"
 	"github.com/orislabsdev/gocore/handler"
 	"github.com/orislabsdev/gocore/logger"
@@ -270,3 +274,40 @@ func (c *Core) Run() error {
 //
 //	http.ListenAndServe(":8080", app.Handler())
 func (c *Core) Handler() http.Handler { return c.router }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Static file serving
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Static registers a route to serve files from a directory on disk.
+//
+// It automatically creates a wildcard route: prefix + "/*filepath"
+//
+// This is the recommended way to serve uploaded files, documents, and
+// other backend-generated content:
+//
+//	app.Static("/api/images", "./uploads").Public()
+//	app.Static("/api/documents", "./docs")
+//
+// Security: the route is private by default. Chain .Public() to make it
+// accessible without authentication.
+func (c *Core) Static(prefix, dir string, opts ...builtin.FileOption) *router.Route {
+	return c.StaticFS(prefix, os.DirFS(dir), opts...)
+}
+
+// StaticFS registers a route to serve files from an fs.FS.
+//
+// Use this when you need to serve files from an embedded filesystem:
+//
+//	//go:embed assets
+//	var assetFS embed.FS
+//	app.StaticFS("/api/assets", assetFS).Public()
+func (c *Core) StaticFS(prefix string, root fs.FS, opts ...builtin.FileOption) *router.Route {
+	prefix = strings.TrimRight(prefix, "/")
+	if prefix == "" {
+		prefix = "/"
+	}
+	pattern := prefix + "/*filepath"
+
+	return c.router.GET(pattern, builtin.ServeFS(root, opts...))
+}
