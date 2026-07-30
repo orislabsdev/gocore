@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-07-29
+
+### Fixed
+- The `search` function has been updated to accept empty paths; previously, if a valid path was not provided, it returned “Not Found” by default. 
+
+### Added 
+- Built-in `ServeDir` and `ServeFS`, maintaining the API Backend target with secure parameters.
+- `Static` and `StaticFS` to facilitate their use directly from the `gocore` module. 
+
+---
+
 ## [0.5.7] - 2026-07-17
 
 ### Fixed
@@ -12,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `SubProtocols []string` field on `websocket.Upgrader` to configure accepted WebSocket sub-protocols.
+
+---
 
 ## [0.5.6] - 2026-04-12
 
@@ -21,12 +34,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated `.gitignore` to exclude `issue.md`.
 
+---
+
 ## [0.5.5] - 2026-03-31
 
 ### Refactored
 - Improved error handling and variable usage in core components.
 - Aligned indentation of WebSocket error variables for consistency.
 - Cleaned up whitespace formatting in OpenAPI structs and response handlers.
+
+---
 
 ## [0.5.4] - 2026-03-31
 
@@ -38,10 +55,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configured `GOTOOLCHAIN` to resolve `covdata` bug in CI.
 - Refactored `golangci-lint` configuration and upgraded `golangci-lint-action` to v7.
 
+---
+
 ## [0.5.3] - 2026-03-31
 
 ### Refactored
 - Standardized response handling and updated associated router tests.
+
+---
 
 ## [0.5.2] - 2026-03-30
 
@@ -50,6 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated documentation and example for WebSocket configuration and expansion.
+
+---
 
 ## [0.5.1] - 2026-03-30
 
@@ -66,6 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded `golang.org/x/time` from `v0.5.0` to `v0.15.0`
 - Upgraded `google.golang.org/protobuf` from `v1.36.8` to `v1.36.11`
 
+---
+
 ## [0.5.0] - 2026-03-30
 
 ### Added
@@ -73,6 +98,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `websocket.Upgrader` for performing HTTP-to-WebSocket protocol upgrades on standard routes.
 - `websocket.Conn` for framing and masking WebSocket data payloads.
 - Added `/ws` echo endpoint example to the demonstration application.
+
+---
 
 ## [0.4.0] - 2026-03-30
 
@@ -83,6 +110,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `openapi` package to automatically generate JSON schemas from Go structs via reflection.
 - Added `builtin.SwaggerUI` handler to natively serve the Swagger UI single-page application.
 
+---
+
 ## [0.3.0] - 2026-03-29
 
 ### Added
@@ -90,12 +119,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Abstracted the `RateLimit` middleware to allow pluggable backends (`Provider: "memory" | "redis"`).
 - Added `RedisConfig` to the global configuration struct.
 
+---
+
 ## [0.2.0] - 2026-03-28
 
 ### Added
 - Integrated Prometheus metrics exporter (`builtin.Prometheus()`).
 - Added Prometheus middleware (`middleware.Prometheus()`) with cardinality protection for dynamic routes.
 - Exposed matched route pattern in router for downstream monitoring.
+
+---
 
 ## [0.1.0] - 2026-03-18
 

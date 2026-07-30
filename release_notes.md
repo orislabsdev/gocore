@@ -1,24 +1,59 @@
-# Release Notes - v0.5.6
+# Release Notes - v0.6.0
 
 ## Overview
 
-Version **v0.5.6** introduces a critical enhancement to the GoCore response handling system, ensuring full compatibility with protocol upgrades (such as WebSockets) across all environments.
+---
+
+Version **0.6.0** introduces a key feature for `gocore` as a package; most backends need to serve files such as images and documents securely, so fully functional features have been added for this purpose. 
 
 ## Highlights
 
-### 🚀 HTTP Hijacker Support
-We have implemented the `http.Hijacker` interface in our internal `responseWriter`. 
+---
+
+### 🚀 File Server Support
+
+We have implemented `Static` to serve files from disk and `StaticFS` for files embedded in the `gocore` module for your convenience. 
 
 **Why this matters:**
-Previously, when GoCore wrapped the standard `http.ResponseWriter` to provide status and size tracking, the underlying "hijack" capability was lost. This caused issues when trying to upgrade connections to WebSockets in environments that rely on this interface. With this update, the `Hijack()` method is now correctly exposed, allowing seamless protocol upgrades while maintaining our telemetry features.
+
+In previous versions, it was necessary to use `http.FileServer`, which is deprecated and violated the standard set by `gocore`. As a result, integration with the router's wildcards was lost, forcing developers to write custom file-serving code that could cause security issues and other problems. 
+
+Now the implementation can be carried out in a simple way. 
+
+```go
+app.GET("/api/images/*filepath", builtin.ServeDir("./uploads"))
+```
+
+Or, for a more convenient API, we recommend
+
+```go
+app.GET("/api/images", app.Static("./uploads"))
+```
+
+
+
+### Upgrade Guide
+
+---
+
+This is a non-breaking change; existing code works correctly without these implementations. 
 
 ## Full Changelog
 
-### Added
-- **Core**: Implemented `http.Hijack()` in `handler.responseWriter`.
+---
 
-### Changed
-- **Project**: Updated `.gitignore` to exclude `issue.md`.
+
+
+### Fixed
+
+- The `search()` function has been fixed; it previously did not allow empty segments in the path and broke support for `/*filepath`, since it returned a **404** error when no path was present.
+
+
+
+### Added
+
+- **Built-in**: The built-in `ServeDir()` and `ServeFS()` handlers have been implemented.
+- **Core:** `Static()` and `StaticFS()` have been implemented for convenience.
 
 ---
 
